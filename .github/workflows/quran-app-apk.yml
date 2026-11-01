@@ -1,0 +1,96 @@
+name: Quran app APK
+
+# Builds the React Native app in quran-app/ into an installable Android APK and
+# publishes it as a GitHub Release, so it can be downloaded straight to a phone.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'quran-app/**'
+      - '.github/workflows/quran-app-apk.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: quran-app-apk
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: quran-app
+    steps:
+      - name: Checkout the Code
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: quran-app/package-lock.json
+
+      - name: Setup JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Set Android version code
+        run: |
+          node -e '
+            const fs = require("fs");
+            const a = JSON.parse(fs.readFileSync("app.json", "utf8"));
+            a.expo.android.versionCode = Number(process.env.GITHUB_RUN_NUMBER);
+            fs.writeFileSync("app.json", JSON.stringify(a, null, 2));
+          '
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --no-install
+        env:
+          CI: 1
+
+      # The generated project signs release builds with the template's bundled
+      # debug keystore (android/app/debug.keystore). It is the same file on every
+      # build, so new APKs install as updates over old ones and keep your data.
+      - name: Build release APK
+        working-directory: quran-app/android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: Rename APK
+        run: |
+          mkdir -p ../dist
+          cp android/app/build/outputs/apk/release/app-release.apk "../dist/Quran-${GITHUB_RUN_NUMBER}.apk"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Quran-apk
+          path: dist/*.apk
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "quran-app-${GITHUB_RUN_NUMBER}" ../dist/*.apk \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "Quran app (build ${GITHUB_RUN_NUMBER})" \
+            --notes "Android APK built from ${GITHUB_SHA::7}. Open this page on your phone, tap the .apk file under Assets and install it." \
+            --latest
