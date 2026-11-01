@@ -24,10 +24,8 @@ export type Place = Ref & { at: number };
 export type State = {
   hydrated: boolean;
   settings: Settings;
-  /** The place you set yourself with "Mark as last read". */
+  /** The place you set yourself with "Mark as last read" — the only place ever shown as last read. */
   lastRead: Place | null;
-  /** Where you most recently were, tracked automatically while reading. */
-  recent: Place | null;
   tags: Tag[];
   /** Keyed by "sura:ayah". */
   saved: Record<string, SavedVerse>;
@@ -47,7 +45,6 @@ let state: State = {
   hydrated: false,
   settings: DEFAULT_SETTINGS,
   lastRead: null,
-  recent: null,
   tags: [],
   saved: {},
 };
@@ -110,7 +107,7 @@ function sanitize(raw: any): Omit<State, 'hydrated'> {
     p && Number.isInteger(p.sura) && Number.isInteger(p.ayah)
       ? { sura: p.sura, ayah: p.ayah, at: Number(p.at) || Date.now() }
       : null;
-  return { settings, tags, saved, lastRead: place(raw?.lastRead), recent: place(raw?.recent) };
+  return { settings, tags, saved, lastRead: place(raw?.lastRead) };
 }
 
 export async function hydrate() {
@@ -136,12 +133,6 @@ export const actions = {
 
   clearLastRead() {
     set(() => ({ lastRead: null }));
-  },
-
-  setRecent(r: Ref) {
-    const cur = state.recent;
-    if (cur && cur.sura === r.sura && cur.ayah === r.ayah) return;
-    set(() => ({ recent: { sura: r.sura, ayah: r.ayah, at: Date.now() } }));
   },
 
   createTag(name: string, color: string): Tag {

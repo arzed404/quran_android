@@ -193,15 +193,9 @@ export default function Home() {
 
 function ContinueCard() {
   const p = usePalette();
+  // Only the place you marked yourself. Wherever else you open while reading is
+  // never shown here, so browsing another surah never moves your place.
   const lastRead = useStore((s) => s.lastRead);
-  const recent = useStore((s) => s.recent);
-
-  // only worth showing when you've wandered somewhere else since setting your marker
-  const showRecent =
-    !!recent &&
-    !!lastRead &&
-    recent.at > lastRead.at &&
-    (recent.sura !== lastRead.sura || Math.abs(recent.ayah - lastRead.ayah) > 3);
 
   if (!lastRead) {
     return (
@@ -216,12 +210,10 @@ function ContinueCard() {
         </Text>
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
           <Tap
-            onPress={() => openVerse(recent ?? { sura: 1, ayah: 1 })}
+            onPress={() => openVerse({ sura: 1, ayah: 1 })}
             style={[styles.cardButton, { backgroundColor: p.onAccent }]}
           >
-            <Text style={[styles.cardButtonText, { color: p.accent }]}>
-              {recent ? `Resume ${sura(recent.sura).tr} ${recent.sura}:${recent.ayah}` : 'Start with Al-Fatihah'}
-            </Text>
+            <Text style={[styles.cardButtonText, { color: p.accent }]}>Start with Al-Fatihah</Text>
             <Icon name="arrow-forward" size={18} color={p.accent} />
           </Tap>
         </View>
@@ -232,66 +224,43 @@ function ContinueCard() {
   const s = sura(lastRead.sura);
   const pct = Math.max(2, Math.round(progressOf(lastRead) * 100));
   return (
-    <View>
-      <Tap
-        onPress={() => openVerse(lastRead)}
-        pressedOpacity={0.85}
-        style={[styles.card, { backgroundColor: p.accent }]}
-        accessibilityLabel={`Continue reading ${s.tr} ayah ${lastRead.ayah}`}
-      >
-        <View style={styles.cardRow}>
-          <Icon name="bookmark" size={18} color={p.onAccent} />
-          <Text style={[styles.cardLabel, { color: p.onAccent }]}>LAST READ · {timeAgo(lastRead.at)}</Text>
-        </View>
-        <View style={[styles.cardRow, { alignItems: 'flex-end', marginTop: 6 }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.cardTitle, { color: p.onAccent }]} numberOfLines={1}>
-              {s.tr}
-            </Text>
-            <Text style={[styles.cardMeta, { color: p.onAccent }]}>
-              Ayah {lastRead.ayah} of {s.count} · Page {pageOf(lastRead)} · Juz {juzOf(lastRead)}
-            </Text>
-          </View>
-          <Text style={[styles.cardArabic, { color: p.onAccent, fontFamily: ARABIC_FONT }]}>{s.ar}</Text>
-        </View>
-        <Text
-          numberOfLines={1}
-          style={[styles.cardVerse, { color: p.onAccent, fontFamily: ARABIC_FONT }]}
-        >
-          {arabic(lastRead.sura, lastRead.ayah)}
-        </Text>
-        <View style={[styles.progressTrack, { backgroundColor: p.onAccent + '33' }]}>
-          <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: p.onAccent }]} />
-        </View>
-        <View style={[styles.cardRow, { marginTop: 14, justifyContent: 'space-between' }]}>
-          <Text style={[styles.cardMeta, { color: p.onAccent }]}>{pct}% through the Qur’an</Text>
-          <View style={[styles.cardButton, { backgroundColor: p.onAccent }]}>
-            <Text style={[styles.cardButtonText, { color: p.accent }]}>Continue</Text>
-            <Icon name="arrow-forward" size={18} color={p.accent} />
-          </View>
-        </View>
-      </Tap>
-      {showRecent && recent && <RecentStrip recent={recent} />}
-    </View>
-  );
-}
-
-function RecentStrip({ recent }: { recent: Place }) {
-  const p = usePalette();
-  return (
     <Tap
-      onPress={() => openVerse(recent)}
-      style={[styles.recent, { backgroundColor: p.surface, borderColor: p.border }]}
+      onPress={() => openVerse(lastRead)}
+      pressedOpacity={0.85}
+      style={[styles.card, { backgroundColor: p.accent }]}
+      accessibilityLabel={`Continue reading ${s.tr} ayah ${lastRead.ayah}`}
     >
-      <Icon name="time-outline" size={18} color={p.textMuted} />
-      <Text style={{ flex: 1, color: p.textMuted, fontSize: 14 }} numberOfLines={1}>
-        Last opened{' '}
-        <Text style={{ color: p.text, fontWeight: '600' }}>
-          {sura(recent.sura).tr} {recent.sura}:{recent.ayah}
-        </Text>{' '}
-        · {timeAgo(recent.at)}
+      <View style={styles.cardRow}>
+        <Icon name="bookmark" size={18} color={p.onAccent} />
+        <Text style={[styles.cardLabel, { color: p.onAccent }]}>LAST READ · {timeAgo(lastRead.at)}</Text>
+      </View>
+      <View style={[styles.cardRow, { alignItems: 'flex-end', marginTop: 6 }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.cardTitle, { color: p.onAccent }]} numberOfLines={1}>
+            {s.tr}
+          </Text>
+          <Text style={[styles.cardMeta, { color: p.onAccent }]}>
+            Ayah {lastRead.ayah} of {s.count} · Page {pageOf(lastRead)} · Juz {juzOf(lastRead)}
+          </Text>
+        </View>
+        <Text style={[styles.cardArabic, { color: p.onAccent, fontFamily: ARABIC_FONT }]}>{s.ar}</Text>
+      </View>
+      <Text
+        numberOfLines={1}
+        style={[styles.cardVerse, { color: p.onAccent, fontFamily: ARABIC_FONT }]}
+      >
+        {arabic(lastRead.sura, lastRead.ayah)}
       </Text>
-      <Icon name="chevron-forward" size={18} color={p.textFaint} />
+      <View style={[styles.progressTrack, { backgroundColor: p.onAccent + '33' }]}>
+        <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: p.onAccent }]} />
+      </View>
+      <View style={[styles.cardRow, { marginTop: 14, justifyContent: 'space-between' }]}>
+        <Text style={[styles.cardMeta, { color: p.onAccent }]}>{pct}% through the Qur’an</Text>
+        <View style={[styles.cardButton, { backgroundColor: p.onAccent }]}>
+          <Text style={[styles.cardButtonText, { color: p.accent }]}>Continue</Text>
+          <Icon name="arrow-forward" size={18} color={p.accent} />
+        </View>
+      </View>
     </Tap>
   );
 }
@@ -432,16 +401,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   cardButtonText: { fontSize: 15, fontWeight: '700' },
-  recent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: radius.md,
-    borderWidth: 1,
-  },
   filter: {
     flexDirection: 'row',
     alignItems: 'center',
