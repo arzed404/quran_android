@@ -73,12 +73,6 @@ export default function Reader() {
     if (first) setTopAyah(first.item as number);
   }).current;
 
-  // remember where you are automatically (separate from your manual "last read")
-  useEffect(() => {
-    const t = setTimeout(() => actions.setRecent({ sura: suraNo, ayah: topAyah }), 800);
-    return () => clearTimeout(t);
-  }, [suraNo, topAyah]);
-
   const goToSura = (n: number) => {
     router.replace({ pathname: '/read/[sura]', params: { sura: String(n) } });
   };
